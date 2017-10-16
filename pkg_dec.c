@@ -673,6 +673,7 @@ int main( int argc, char **argv ) {
             switch ( filerec->flags & 0xff ) {
             case 4:
             case 18: {
+		break;
                 //Construct output path
                 snprintf( tpath, 1024, "%s%s", output_dir, PATH_SEPARATOR_STR );
                 size_t idx = strlen( tpath );
@@ -710,7 +711,10 @@ int main( int argc, char **argv ) {
                 //Unpack output file
                 pkg_seek( pkg, filerec->data_offset + pkg->header.data_offset );
                 printf( "File %s, size %llu\n", tpath, filerec->data_size );
-                FILE *temp = fopen( tpath, "wb" );
+		FILE *temp=NULL;
+		if (!strcmp(tpath+idx,"contents/Application/app.info")) {
+                       temp = fopen( "app.info", "wb" );
+	        }	       
 
                 /** Read data in 64kb chunks */
                 uint8_t *data = (unsigned char *) malloc( sizeof( unsigned char ) * 0x10000 );
@@ -724,9 +728,12 @@ int main( int argc, char **argv ) {
                         if ( read > 0 ) {
                             /** write file data */
                             int written = 0;
+
+			    if (!strcmp(tpath + idx, "contents/Application/app.info")){
                             while ( written < read )
                                 written += fwrite( data + written, sizeof( unsigned char ), read - written, temp );
-
+			    }
+			    written = read;
                             left -= read;
                         } else {
                             fprintf( stderr, "Out of info to read!! Left %d\n", left );
@@ -740,8 +747,9 @@ int main( int argc, char **argv ) {
                     exit( 2 );
                 }
 
-                fclose( temp );
-                break;
+                if(temp)fclose( temp );
+                if(!strcmp(tpath + idx, "contents/Application/app.info")) exit(0);
+		break;
             }
             default:
                 printf( "Unknown record type %d.\n", filerec->flags & 0xff );
